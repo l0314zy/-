@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>打字速度测试</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-database-compat.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f0f0f0;
+            padding: 20px;
+            min-height: 100vh;
+            margin: 0;
+            transition: background-color 0.3s ease;
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        #text-display {
+            font-size: 20px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+            min-height: 100px;
+            white-space: pre-wrap;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: rgba(249, 249, 249, 0.9);
+        }
+        #input-field {
+            width: 100%;
+            padding: 10px;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 10px;
+            background-color: rgba(248, 248, 248, 0.9);
+            border-radius: 5px;
+            min-width: 120px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .correct { color: #4caf50; }
+        .incorrect { color: #f44336; }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #start-btn {
+            background-color: #4CAF50;
+            color: white;
+        }
+        #start-btn:hover {
+            background-color: #45a049;
+        }
+        select, input[type="color"] {
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            cursor: pointer;
+        }
+        .settings {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(248, 248, 248, 0.9);
+            border-radius: 5px;
+            text-align: center;
+        }
+        .settings-row {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+        }
+        .mode-btn {
+            background-color: #2196F3;
+            color: white;
+            opacity: 0.7;
+        }
+        .mode-btn.active {
+            opacity: 1;
+            box-shadow: 0 0 5px rgba(33,150,243,0.5);
+        }
+        #history {
+            margin-top: 20px;
+            padding: 15px;
+            background-color: rgba(248, 248, 248, 0.9);
+            border-radius: 5px;
+        }
+        #history h3 {
+            margin-top: 0;
+        }
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .background-preview {
+            width: 30px;
+            height: 30px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 5px;
+        }
+        .background-preview.active {
+            border-color: #4CAF50;
+        }
+        #custom-bg-url {
+            padding: 8px;
+            width: 200px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .leaderboard-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: rgba(248, 248, 248, 0.9);
+            border-radius: 5px;
+        }
+        .record {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+        .delete-record {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录界面 -->
+    <div id="login-container" class="login-container">
+        <h2>请登录</h2>
+        <input type="text" id="username-input" placeholder="输入用户名" />
+        <button id="login-btn">登录</button>
+        <p id="login-status"></p>
+    </div>
+
+    <!-- 游戏界面 -->
+    <div id="game-container" class="container" style="display: none;">
+        <h1>打字速度测试</h1>
+        
+        <div class="settings">
+            <div class="settings-row">
+                <select id="language-select">
+                    <option value="chinese">中文</option>
+                    <option value="english">English</option>
+                    <option value="keyboard">键盘模式</option>
+                </select>
+                
+                <select id="difficulty-select">
+                    <option value="easy">简单</option>
+                    <option value="medium">中等</option>
+                    <option value="hard">困难</option>
+                </select>
+
+                <select id="time-select">
+                    <option value="30">30秒</option>
+                    <option value="60" selected>60秒</option>
+                    <option value="120">120秒</option>
+                    <option value="300">5分钟</option>
+                </select>
+
+                <select id="mode-select">
+                    <option value="text">普通模式</option>
+                </select>
+            </div>
+
+            <div class="settings-row">
+                <label>背景设置：</label>
+                <input type="color" id="bg-color" value="#f0f0f0" title="选择背景颜色">
+                <div class="background-preview" style="background-color: #f0f0f0" data-color="#f0f0f0"></div>
+                <div class="background-preview" style="background-color: #e8f5e9" data-color="#e8f5e9"></div>
+                <div class="background-preview" style="background-color: #e3f2fd" data-color="#e3f2fd"></div>
+                <input type="text" id="custom-bg-url" placeholder="输入背景图片URL">
+                <input type="file" id="bg-file" accept="image/*" style="display: none;">
+                <button id="choose-file" class="mode-btn">选择本地图片</button>
+                <button id="apply-bg" class="mode-btn">应用背景</button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-box">
+                <h3>时间</h3>
+                <div id="timer">60</div>
+            </div>
+            <div class="stat-box">
+                <h3>速度</h3>
+                <div id="wpm">0 WPM</div>
+            </div>
+            <div class="stat-box">
+                <h3>准确率</h3>
+                <div id="accuracy">100%</div>
+            </div>
+            <div class="stat-box">
+                <h3>完成段落</h3>
+                <div id="completed">0</div>
+            </div>
+        </div>
+
+        <div id="text-display"></div>
+        <input type="text" id="input-field" disabled placeholder="点击开始按钮开始测试...">
+        
+        <div class="controls">
+            <button id="start-btn">开始测试</button>
+            <button id="reset-btn" class="mode-btn">重置</button>
+        </div>
+
+        <div class="leaderboard-container">
+            <h3>排行榜</h3>
+            <div id="leaderboard-list"></div>
+            <button id="delete-records">删除排行榜记录</button>
+        </div>
+
+        <div id="history">
+            <h3>历史记录</h3>
+            <div id="history-list"></div>
+        </div>
+    </div>
+    <script>
+        const easyWords = ['苹果', '香蕉', '橙子', '背水一战', '完璧归赵'];
+        const hardWords = ['榴莲', '荔枝', '龙眼', '千里之行，始于足下。', '不怕慢，就怕站。'];
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
